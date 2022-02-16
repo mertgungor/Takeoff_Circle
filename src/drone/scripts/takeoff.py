@@ -2,18 +2,19 @@
 import rospy 
 import mavros
 
-from geometry_msgs.msg import PoseStamped 
+from geometry_msgs.msg import PoseStamped ,TwistStamped
 from mavros_msgs.msg import * 
 from mavros_msgs.srv import * 
-
+from drone.srv import PoseCommander
 
 pose = PoseStamped()
 pose.pose.position.x = 0
 pose.pose.position.y = 0
 pose.pose.position.z = 5
 
-global state 
+vel = TwistStamped()
 
+global state 
 
 def state_callback(data):
     
@@ -25,6 +26,14 @@ def state_listener():
     rospy.Subscriber("/mavros/state", State, state_callback)
     rate = rospy.Rate(100)
     rate.sleep()
+
+def pose_command_handler(req):
+    global pose
+
+    pose.pose.position.x = req.x
+    pose.pose.position.y = req.y
+    pose.pose.position.z = req.z
+    return True
 
 
 
@@ -41,6 +50,10 @@ if __name__ == '__main__':
 
     pose_pub = rospy.Publisher("/mavros/setpoint_position/local", PoseStamped, queue_size=10)
     pose_pub.publish(pose)
+
+    vel_pub = rospy.Publisher("/mavros/setpoint_velocity/cmd_vel", TwistStamped, queue_size=1000)
+
+    pose_commander = rospy.Service("pose_commander", PoseCommander, pose_command_handler)
 
     set_mode = SetMode()
     set_mode._response_class.custom_mode = "OFFBOARD"
